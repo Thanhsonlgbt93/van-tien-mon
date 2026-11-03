@@ -118,3 +118,46 @@ app.get("/health", (req, res) => {
 server.listen(PORT, () => {
   console.log("Vạn Tiên Môn đang chạy tại cổng", PORT);
 });
+async function connectTikTok() {
+  if (!TIKTOK_USERNAME) {
+    console.log("Chưa cấu hình tài khoản TikTok.");
+    return;
+  }
+
+  try {
+    const { TikTokLiveConnection } = await import("tiktok-live-connector");
+    const tiktok = new TikTokLiveConnection(TIKTOK_USERNAME);
+
+    tiktok.on("chat", (data) => {
+      const id = String(data.userId);
+      const name = data.nickname || "Đệ tử";
+      joinSect(id, name);
+      cultivate(id, name, 10, "Trò chuyện TikTok");
+    });
+
+    tiktok.on("like", (data) => {
+      const id = String(data.userId);
+      const name = data.nickname || "Đệ tử";
+      cultivate(id, name, Math.max(1, data.likeCount || 1), "Thả tim TikTok");
+    });
+
+    tiktok.on("gift", (data) => {
+      const id = String(data.userId);
+      const name = data.nickname || "Đệ tử";
+      const diamonds = data.diamondCount || 1;
+      cultivate(id, name, diamonds * 20, "Tiên lễ TikTok");
+      disciples[id].stones += diamonds;
+    });
+
+    tiktok.on("member", (data) => {
+      joinSect(String(data.userId), data.nickname);
+    });
+
+    await tiktok.connect();
+    console.log("Đã kết nối TikTok LIVE:", TIKTOK_USERNAME);
+  } catch (error) {
+    console.error("TikTok chưa kết nối:", error.message);
+  }
+}
+
+connectTikTok();
