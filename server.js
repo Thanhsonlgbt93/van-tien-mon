@@ -2,7 +2,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const { TikTokLiveConnection } = require("tiktok-live-connector");
+
 
 const app = express();
 const server = http.createServer(app);
@@ -109,42 +109,7 @@ io.on("connection", (socket) => {
   });
 });
 
-if (TIKTOK_USERNAME) {
-  const tiktok = new TikTokLiveConnection(TIKTOK_USERNAME);
 
-  tiktok.connect()
-    .then(() => {
-      console.log("Đã kết nối TikTok LIVE:", TIKTOK_USERNAME);
-    })
-    .catch((error) => {
-      console.error("Không kết nối được TikTok LIVE:", error.message);
-    });
-
-  tiktok.on("chat", (data) => {
-    const id = String(data.userId);
-    const name = data.nickname || "Đệ tử";
-    joinSect(id, name);
-    cultivate(id, name, 10, "Trò chuyện TikTok");
-  });
-
-  tiktok.on("like", (data) => {
-    const id = String(data.userId);
-    const name = data.nickname || "Đệ tử";
-    cultivate(id, name, Math.max(1, data.likeCount || 1), "Thả tim TikTok");
-  });
-
-  tiktok.on("gift", (data) => {
-    const id = String(data.userId);
-    const name = data.nickname || "Đệ tử";
-    const diamonds = data.diamondCount || 1;
-    cultivate(id, name, diamonds * 20, "Tiên lễ TikTok");
-    disciples[id].stones += diamonds;
-  });
-
-  tiktok.on("member", (data) => {
-    joinSect(String(data.userId), data.nickname);
-  });
-}
 
 app.get("/health", (req, res) => {
   res.json({ status: "online", sect: "Vạn Tiên Môn" });
