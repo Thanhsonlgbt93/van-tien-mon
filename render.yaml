@@ -1,0 +1,9 @@
+
+services:
+  - type: web
+    name: van-tien-mon
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
