@@ -126,7 +126,9 @@ async function connectTikTok() {
 
   try {
     const { TikTokLiveConnection } = await import("tiktok-live-connector");
-    const tiktok = new TikTokLiveConnection(TIKTOK_USERNAME);
+    const tiktok = new TikTokLiveConnection(TIKTOK_USERNAME, {
+  processInitialData: false
+});
 
     tiktok.on("chat", (data) => {
       const id = String(data.userId);
