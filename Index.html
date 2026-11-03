@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VẠN TIÊN MÔN</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;color:#f7e6bd;
+ font-family:Georgia,serif;
+ background:radial-gradient(ellipse at top,#38214f 0%,#100d20 55%,#05040c 100%);
+ min-height:100vh;
+}
+header{
+ text-align:center;padding:32px 12px 25px;
+ background:linear-gradient(120deg,#120d24,#62401e,#160d29);
+ border-bottom:2px solid #d5ad61;
+}
+.logo{font-size:42px;color:#ffe6a3;text-shadow:0 0 20px #e6a73d}
+h1{font-size:30px;margin:8px 0;color:#ffe8b1}
+.subtitle{letter-spacing:3px;color:#d9bc87;font-size:12px}
+.master{margin-top:16px;color:#fff0ca}
+.container{max-width:760px;margin:auto;padding:14px}
+.panel{
+ background:linear-gradient(145deg,#21182f,#100e1c);
+ border:1px solid #8f6b3d;border-radius:15px;
+ padding:18px;margin:14px 0;
+ box-shadow:0 5px 22px #0008;
+}
+h2{color:#f4d18c;margin:0 0 15px;font-size:20px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{
+ background:#30213d;border-radius:12px;
+ padding:17px 8px;text-align:center;
+ border:1px solid #715235;
+}
+.stat span{display:block;color:#cdbb9d;font-size:13px}
+.stat strong{display:block;color:#ffdf91;font-size:22px;margin-top:8px}
+input{
+ width:100%;padding:13px;border-radius:9px;
+ background:#090714;color:white;border:1px solid #927346;
+ font-size:16px;margin:5px 0 12px;
+}
+button{
+ padding:12px 15px;margin:4px;
+ color:#fff0cb;font-weight:bold;
+ background:linear-gradient(120deg,#70411f,#b88945);
+ border:1px solid #e4bd78;border-radius:9px;
+}
+button:active{transform:scale(.97)}
+.primary{width:100%;font-size:16px}
+.actions{display:flex;flex-wrap:wrap;gap:5px}
+.actions button{flex:1;min-width:42%}
+#ranking{padding-left:25px;margin:0}
+#ranking li{padding:12px 5px;border-bottom:1px solid #57432e}
+.rank{color:#f8d17b}
+.realm{
+ display:flex;justify-content:space-between;
+ border-bottom:1px solid #49384b;padding:10px 0;
+}
+#status{font-size:13px;color:#c9e8b8;margin-top:12px}
+footer{text-align:center;padding:25px;color:#aa936d;font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="logo">☯</div>
+ <h1>VẠN TIÊN MÔN</h1>
+ <div class="subtitle">TIÊN MA SONG CẢNH</div>
+ <div class="master">Chưởng môn Nguyễn Thanh Sơn</div>
+ <div id="status">Đang kết nối tiên giới...</div>
+</header>
+
+<div class="container">
+
+<section class="panel">
+ <h2>🏯 Nhập môn tu tiên</h2>
+ <input id="name" placeholder="Nhập đạo hiệu của đạo hữu">
+ <button class="primary" onclick="join()">✦ BÁI NHẬP VẠN TIÊN MÔN ✦</button>
+</section>
+
+<section class="panel">
+ <h2>🌌 Thiên Địa Bảng</h2>
+ <div class="stats">
+  <div class="stat">
+   <span>Tổng số đệ tử</span>
+   <strong id="count">0</strong>
+  </div>
+  <div class="stat">
+   <span>Cảnh giới tối cao</span>
+   <strong id="highest">Phàm Nhân</strong>
+  </div>
+ </div>
+</section>
+
+<section class="panel">
+ <h2>⚡ Thử luyện linh lực</h2>
+ <div class="actions">
+  <button onclick="demo('demoChat')">📜 Tu luyện +10</button>
+  <button onclick="demo('demoLike')">❤️ Thả tim +100</button>
+  <button onclick="demo('demoGift')">🎁 Tiên lễ +500</button>
+ </div>
+ <p style="font-size:12px;color:#b9a78a">
+  Chức năng thử nghiệm. Sự kiện TikTok LIVE cần kết nối riêng.
+ </p>
+</section>
+
+<section class="panel">
+ <h2>🏆 Bảng xếp hạng thiên kiêu</h2>
+ <ol id="ranking">
+  <li>Chưa có đệ tử.</li>
+ </ol>
+</section>
+
+<section class="panel">
+ <h2>📖 Hệ thống cảnh giới</h2>
+ <div id="realms"></div>
+</section>
+
+</div>
+
+<footer>
+ VẠN TIÊN MÔN · THIÊN ĐỊA ĐỒNG TU · VẠN ĐẠO TRANH PHONG
+</footer>
+
+<script>
+const socket=io();
+let disciples=[];
+const realmList=[
+["Phàm Nhân",0],["Luyện Khí",100],
+["Trúc Cơ",300],["Kim Đan",700],
+["Nguyên Anh",1400],["Hóa Thần",2500],
+["Luyện Hư",4200],["Hợp Thể",6500],
+["Đại Thừa",9500],["Độ Kiếp",13500],
+["Chân Tiên",18500],["Tiên Đế",25000]
+];
+
+function escapeHTML(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",
+ '"':"&quot;","'":"&#39;"
+ })[c]);
+}
+
+socket.on("connect",()=>{
+ document.getElementById("status").textContent="● Tiên giới đã kết nối";
+});
+socket.on("disconnect",()=>{
+ document.getElementById("status").textContent="● Mất kết nối tiên giới";
+});
+socket.on("initialData",data=>{
+ disciples=data.disciples||[];
+ render();
+});
+socket.on("joined",data=>{
+ disciples=data.disciples||[];
+ render();
+});
+socket.on("cultivation",data=>{
+ disciples=data.disciples||[];
+ render();
+});
+
+function join(){
+ const name=document.getElementById("name").value.trim();
+ if(!name)return alert("Hãy nhập đạo hiệu!");
+ socket.emit("demoJoin",name);
+}
+function demo(action){
+ const name=document.getElementById("name").value.trim();
+ if(!name)return alert("Hãy nhập đạo hiệu trước!");
+ socket.emit(action,name);
+}
+function render(){
+ const sorted=[...disciples].sort((a,b)=>b.power-a.power);
+ document.getElementById("count").textContent=sorted.length;
+ document.getElementById("highest").textContent=
+ sorted[0]?.realm||"Phàm Nhân";
+ document.getElementById("ranking").innerHTML=sorted.length?
+ sorted.map((d,i)=>`<li><span class="rank">TOP ${i+1}</span>　<strong>${escapeHTML(d.name)}</strong><br><small>${escapeHTML(d.realm)} · ${d.power} linh lực</small></li>`).join("")
+ :"<li>Chờ những vị tiên nhân đầu tiên nhập môn...</li>";
+ document.getElementById("realms").innerHTML=
+ realmList.map(r=>`<div class="realm"><span>✧ ${r[0]}</span><span>${r[1].toLocaleString("vi-VN")} linh lực</span></div>`).join("");
+}
+render();
+</script>
+</body>
+</html>
